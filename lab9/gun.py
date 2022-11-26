@@ -108,6 +108,18 @@ class Ball:
             return False
 
 
+class AngryBall(Ball):
+    def __init__(self, screen: pygame.Surface, x=40, y=450):
+        self.screen = screen
+        self.x = x
+        self.y = y
+        self.r = 7
+        self.vx = 0
+        self.vy = 0
+        self.color = GREEN
+        self.live = 30
+
+
 class Gun:
     def __init__(self, screen):
         self.screen = screen
@@ -127,11 +139,18 @@ class Gun:
         """
         global balls, bullet
         bullet += 1
-        new_ball = Ball(self.screen)
-        new_ball.r += 5
+        tip = randint(0,5)
+        if tip == 0:
+            new_ball = AngryBall(self.screen)
+        else:
+            new_ball = Ball(self.screen)
+            new_ball.r += 5
         self.an = math.atan2((event.pos[1]-new_ball.y), (event.pos[0]-new_ball.x))
         new_ball.vx = self.f2_power * math.cos(self.an)
         new_ball.vy = - self.f2_power * math.sin(self.an)
+        if tip == 0:
+            new_ball.vx = new_ball.vx * 8
+            new_ball.vy = new_ball.vy * 8
         balls.append(new_ball)
         self.f2_on = 0
         self.f2_power = 10
@@ -185,6 +204,8 @@ class Target:
         self.y = randint(300, 550)
         self.r = randint(10, 50)
         self.color = RED
+        self.vy = randint(0, 5)
+        self.vx = randint(0, 5)
         self.live = 1
 
     def hit(self):
@@ -198,6 +219,70 @@ class Target:
         pygame.draw.circle(self.screen, BLACK,
                            (self.x, self.y), self.r, 1)
 
+    def move(self):
+        """Переместить цель по прошествии единицы времени.
+
+        Метод описывает перемещение цели за один кадр перерисовки. То есть, обновляет значения
+        self.x и self.y с учетом скоростей self.vx и self.vy и стен по краям окна (размер окна 800х600).
+        """
+        if (self.y - self.vy + self.r > HEIGHT and self.vy < 0) or (self.y - self.vy < self.r > 0):
+            self.vy = -self.vy
+        if (self.x + self.vx + self.r > WIDTH and self.vx > 0) or (self.x + self.vx - self.r < 0 and self.vx < 0):
+            self.vx = -self.vx
+        self.x += self.vx
+        self.y -= self.vy
+
+
+class AngryTarget(Target):
+    def draw(self):
+        pygame.draw.circle(self.screen, self.color,
+                           (self.x, self.y), self.r)
+        pygame.draw.circle(self.screen, BLACK,
+                           (self.x, self.y), self.r, 1)
+        pygame.draw.circle(self.screen, BLUE,
+                           (self.x, self.y), self.r/2)
+
+    def new_target(self):
+        """ Инициализация новой цели. """
+        self.x = randint(600, 780)
+        self.y = randint(300, 550)
+        self.r = randint(10, 50)
+        self.color = RED
+        self.vy = randint(5, 50)
+        self.vx = randint(5, 50)
+        self.live = 1
+
+
+def draw_all():
+    global balls, targets, target0, gun
+    gun.draw()
+    target0.draw()
+    for t in targets:
+        t.draw()
+    for b in balls:
+        b.draw()
+
+
+def move_and_hit():
+    global target0, targets, balls, a
+    target0.move()
+    for t in targets:
+        t.move()
+        for b in balls:
+            b.move()
+            if b.hittest(t) and t.live:
+                t.live = 0
+                t.hit()
+                balls = []
+                t.new_target()
+                a = True
+            if b.hittest(target0) and target0.live:
+                target0.live = 0
+                target0.hit()
+                balls = []
+                target0.new_target()
+                a = True
+
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -209,21 +294,23 @@ text()
 text2()
 clock = pygame.time.Clock()
 gun = Gun(screen)
-target = Target(screen)
+target0 = AngryTarget(screen)
+target1 = Target(screen)
+target2 = Target(screen)
+targets = [target1, target2]
 finished = False
 
 while not finished:
     screen.fill(WHITE)
     text()
-    gun.draw()
-    target.draw()
-    for b in balls:
-        b.draw()
+    draw_all()
     if a:
         text2()
-        a = False
         bullet = 0
     pygame.display.update()
+    if a:
+        a = False
+        clock.tick(0.8)
 
     clock.tick(FPS)
     for event in pygame.event.get():
@@ -236,15 +323,6 @@ while not finished:
         elif event.type == pygame.MOUSEMOTION:
             gun.targetting(event)
 
-    for b in balls:
-        b.move()
-        if b.hittest(target) and target.live:
-            target.live = 0
-            target.hit()
-            balls = []
-            target.new_target()
-            a = True
-
+    move_and_hit()
     gun.power_up()
-
 pygame.quit()
