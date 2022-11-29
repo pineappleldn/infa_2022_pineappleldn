@@ -139,7 +139,7 @@ class Gun:
         """
         global balls, bullet
         bullet += 1
-        tip = randint(0,5)
+        tip = randint(0, 5)
         if tip == 0:
             new_ball = AngryBall(self.screen)
         else:
@@ -254,9 +254,8 @@ class AngryTarget(Target):
 
 
 def draw_all():
-    global balls, targets, target0, gun
+    global balls, targets, gun
     gun.draw()
-    target0.draw()
     for t in targets:
         t.draw()
     for b in balls:
@@ -264,8 +263,7 @@ def draw_all():
 
 
 def move_and_hit():
-    global target0, targets, balls, a
-    target0.move()
+    global targets, balls, a
     for t in targets:
         t.move()
         for b in balls:
@@ -275,12 +273,6 @@ def move_and_hit():
                 t.hit()
                 balls = []
                 t.new_target()
-                a = True
-            if b.hittest(target0) and target0.live:
-                target0.live = 0
-                target0.hit()
-                balls = []
-                target0.new_target()
                 a = True
 
 
@@ -294,10 +286,7 @@ text()
 text2()
 clock = pygame.time.Clock()
 gun = Gun(screen)
-target0 = AngryTarget(screen)
-target1 = Target(screen)
-target2 = Target(screen)
-targets = [target1, target2]
+targets = [AngryTarget(screen), Target(screen), Target(screen)]
 finished = False
 
 while not finished:
